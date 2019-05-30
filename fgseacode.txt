@@ -1,0 +1,51 @@
+
+
+#fgsea code
+
+
+#fgsea requires a preranked set of genes (based on expression or experimental parameters)
+
+
+BiocManager::install(“fgsea")   #install fgsea
+
+library(fgsea)                           #load fgsea
+
+data(examplePathways)          #load example data or use your own files in .rnk format or .gmt
+data(exampleRanks)
+
+rnk.file <- system.file("extdata", "naive.vs.th1.rnk", package="fgsea")    
+gmt.file <- system.file("extdata", "mouse.reactome.gmt", package="fgsea")
+
+
+#If using .rnk or .gmt (not example files) need to load the ranked genes and gene pathways
+
+ranks <- read.table(rnk.file,                              #loading ranks
+                    header=TRUE, colClasses = c("character", "numeric"))
+ranks <- setNames(ranks$t, ranks$ID)
+str(ranks)
+
+
+pathways <- gmtPathways(gmt.file)			    #loading pathways
+str(head(pathways))
+
+
+#next steps are the same whether using example data or your own experimental data
+
+fgseaRes <- fgsea(pathways = examplePathways, 	 #running gsea
+                  stats = exampleRanks,
+                  minSize=15,
+                  maxSize=500,
+                  nperm=10000)
+
+head(fgseaRes[order(pval), ]) 		#results and p-values can be looked at in a table
+sum(fgseaRes[, padj < 0.01])		#How many hits were significant at below given p value
+
+plotEnrichment(examplePathways[["5991130_Programmed_Cell_Death"]],      #enrichment plot for specific
+               exampleRanks)				             # pathway	
+
+
+topPathwaysUp <- fgseaRes[ES > 0][head(order(pval), n=10), pathway]             #tableplot of multiple
+topPathwaysDown <- fgseaRes[ES < 0][head(order(pval), n=10), pathway]         #pathways
+topPathways <- c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(examplePathways[topPathways], exampleRanks, fgseaRes, 
+              gseaParam = 0.5)
